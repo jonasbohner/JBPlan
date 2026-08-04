@@ -243,6 +243,20 @@ nav button.on{color:var(--signal)}
 .card,.rail .d{animation:rise .38s cubic-bezier(.2,.7,.3,1) both}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ---------- Mahlzeiten-Quelle & Tages-Editor ---------- */
+.srcsel{display:flex;gap:6px;margin:6px 0 2px;padding-left:30px}
+.srcsel button{flex:1;padding:9px 6px;border:1px solid var(--line);background:#fff;border-radius:11px;
+  font:600 11.5px 'Inter';color:var(--ink2);transition:.15s}
+.srcsel button.on{background:rgba(61,90,254,.09);border-color:var(--signal);color:var(--signal)}
+.daychips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.daychips::-webkit-scrollbar{display:none}
+.daychips button{flex:0 0 auto;min-width:56px;padding:9px 8px;border:1px solid var(--line);background:#FBFAF7;
+  border-radius:13px;font:600 12.5px 'Inter';color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:2px;transition:.15s}
+.daychips button .dd{font-size:9.5px;opacity:.7;font-weight:500}
+.daychips button i{width:5px;height:5px;border-radius:50%;background:var(--go);display:block;margin-top:1px}
+.daychips button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.daychips button.on i{background:var(--go-2)}
+input[type=date]{font-family:'IBM Plex Mono',monospace;font-size:15px}
 </style>
 </head>
 <body>
@@ -293,7 +307,7 @@ nav button.on{color:var(--signal)}
    Schema-Version 2. Bestehende Daten werden migriert, nicht ersetzt.
    ============================================================ */
 
-const SCHEMA = 2;
+const SCHEMA = 3;
 const KEY    = "sub130:v1";          // Schluessel bleibt stabil ueber alle Versionen
 const RACE   = new Date(2026,9,12);
 const GOAL_SEC = 90*60;
@@ -317,7 +331,7 @@ const CORE = [
  {n:"Plank Up-Downs",d:"Vom Unterarmstütz in den Liegestütz und zurück, Hüfte ruhig halten.",lvl:3},
  {n:"Hollow Rocks",d:"Aus dem Hollow Hold kontrolliert schaukeln, Spannung nie verlieren.",lvl:3},
  {n:"Russian Twist",d:"Aufrecht sitzen, Füße schweben, Oberkörper rotieren, Bauch bleibt fest.",lvl:3},
- {n:"Copenhagen Plank kurz",d:"Seitstütz, oberes Bein auf Sofa oder Stuhl, Hüfte hoch. Je 20 Sek pro Seite.",lvl:3}
+ {n:"Copenhagen Plank kurz",d:"Seitstütz, oberes Bein auf Sofa oder Stuhl, Hüfte hoch.",lvl:3,side:true}
 ];
 
 /* ---------- Dehnen: Beine, Fokus hintere Oberschenkel ---------- */
@@ -325,15 +339,15 @@ const STRETCH = [
  {n:"Stehende Vorbeuge",d:"Knie minimal gebeugt, Oberkörper schwer hängen lassen, Nacken locker."},
  {n:"Half Splits links",d:"Aus dem Ausfallschritt vorderes Bein strecken, Zehen ziehen, Hüfte zurück."},
  {n:"Half Splits rechts",d:"Gleiche Position, andere Seite. Rücken lang, nicht rund einrollen."},
- {n:"Liegender Hamstring-Stretch",d:"Rücken am Boden, Bein mit Gurt oder Handtuch nach oben ziehen. 30 Sek je Seite."},
+ {n:"Liegender Hamstring-Stretch",d:"Rücken am Boden, Bein mit Gurt oder Handtuch nach oben ziehen.",side:true},
  {n:"Herabschauender Hund",d:"Fersen abwechselnd Richtung Boden schieben, Waden und Rückseite dehnen."},
- {n:"Sitzende Vorbeuge einbeinig",d:"Ein Bein gestreckt, anderes angewinkelt. Aus der Hüfte beugen. 30 Sek je Seite."},
- {n:"Hüftbeuger-Ausfallschritt",d:"Hinteres Knie am Boden, Becken aufrichten, Po anspannen. 30 Sek je Seite."},
- {n:"Wadendehnung an der Wand",d:"Ferse am Boden, Bein gestreckt. Danach Knie leicht beugen für den Soleus."},
- {n:"Figure-4 / Taube",d:"Knöchel aufs Knie, zum Körper ziehen. Öffnet Gesäß und äußere Hüfte."},
- {n:"Weltbester Dehner",d:"Tiefer Ausfallschritt, Ellbogen zum Boden, dann Brust öffnen. 30 Sek je Seite."},
+ {n:"Sitzende Vorbeuge einbeinig",d:"Ein Bein gestreckt, anderes angewinkelt. Aus der Hüfte beugen.",side:true},
+ {n:"Hüftbeuger-Ausfallschritt",d:"Hinteres Knie am Boden, Becken aufrichten, Po anspannen.",side:true},
+ {n:"Wadendehnung an der Wand",d:"Ferse am Boden, Bein gestreckt. Danach Knie leicht beugen für den Soleus.",side:true},
+ {n:"Figure-4 / Taube",d:"Knöchel aufs Knie, zum Körper ziehen. Öffnet Gesäß und äußere Hüfte.",side:true},
+ {n:"Weltbester Dehner",d:"Tiefer Ausfallschritt, Ellbogen zum Boden, dann Brust öffnen.",side:true},
  {n:"Adduktoren im Sitzen",d:"Fußsohlen zusammen, Knie sinken lassen, Rücken lang."},
- {n:"Quadrizeps im Stand",d:"Ferse zum Po, Knie nach unten, Becken aufgerichtet. 30 Sek je Seite."}
+ {n:"Quadrizeps im Stand",d:"Ferse zum Po, Knie nach unten, Becken aufgerichtet.",side:true}
 ];
 
 /* ---------- Rezepte: Mengen gelten fuer 1 Person und werden skaliert ---------- */
@@ -406,6 +420,7 @@ const RECIPES = [
   st:["Eier 7 Min kochen, abschrecken, halbieren.","Brühe mit Ingwer erhitzen, Miso einrühren, nicht kochen.","Nudeln und Pak Choi zugeben, Eier auflegen."]}
 ];
 
+const MEALSRC=[["rezept","Nach Rezept"],["anders","Anderes Essen"]];
 const MEALSLOTS = [["b","Frühstück","vor dem Start in den Tag"],["l","Mittagessen","Hauptmahlzeit"],["d","Abendessen","Regeneration über Nacht"]];
 
 /* ---------- Hilfsfunktionen ---------- */
@@ -484,6 +499,7 @@ function migrate(raw){
       d.meals={b:n>=1,l:n>=2,d:n>=3};
     }
     if(!d.meals||typeof d.meals!=="object")d.meals={b:false,l:false,d:false};
+    if(!d.msrc||typeof d.msrc!=="object")d.msrc={};   // Schema 3: rezept | anders
     d.workout=!!d.workout; d.stretch=!!d.stretch;
     s.days[k]=d;
   }
@@ -508,7 +524,8 @@ async function save(){
   if(!ok && !memoryOnly){ memoryOnly=true; toast("Speichern fehlgeschlagen. Daten gelten nur für diese Sitzung."); }
 }
 function dayRec(k){
-  if(!S.days[k])S.days[k]={workout:false,stretch:false,meals:{b:false,l:false,d:false}};
+  if(!S.days[k])S.days[k]={workout:false,stretch:false,meals:{b:false,l:false,d:false},msrc:{}};
+  if(!S.days[k].msrc)S.days[k].msrc={};
   return S.days[k];
 }
 const mealCount = r => r&&r.meals ? ["b","l","d"].filter(x=>r.meals[x]).length : 0;
@@ -562,12 +579,12 @@ const stretchOfDay = d => seedPick(STRETCH,dayIndex(d)*13+11,5);
 function coreSteps(d){
   const out=[];
   coreOfDay(d).forEach((e,i,arr)=>{
-    out.push({n:e.n,d:e.d,sec:WORK_SEC,rest:false});
+    out.push({n:e.n,d:e.d,sec:WORK_SEC,rest:false,side:!!e.side});
     out.push({n:"Pause",d:i<arr.length-1?`Kurz durchatmen. Als Nächstes: ${arr[i+1].n}.`:"Letzte Pause. Gleich geschafft.",sec:REST_SEC,rest:true});
   });
   return out;
 }
-const stretchSteps = d => stretchOfDay(d).map(e=>({n:e.n,d:e.d,sec:STRETCH_SEC,rest:false}));
+const stretchSteps = d => stretchOfDay(d).map(e=>({n:e.n,d:e.d,sec:STRETCH_SEC,rest:false,side:!!e.side}));
 
 /* ---------- Rezeptlogik ---------- */
 function tagScores(){
@@ -602,12 +619,13 @@ function recommend(type,d){
 
 /* ---------- Wochenauswertung ---------- */
 function weekStats(monday){
-  const st={done:0,workout:0,stretch:0,mealsOk:0,km:0,sessions:0};
+  const st={done:0,workout:0,stretch:0,mealsOk:0,km:0,sessions:0,ausRezept:0,mahlzeiten:0};
   for(let i=0;i<5;i++){
     const r=S.days[dkey(addDays(monday,i))];if(!r)continue;
     if(r.workout)st.workout++;
     if(r.stretch)st.stretch++;
     if(mealCount(r)>=2)st.mealsOk++;
+    ["b","l","d"].forEach(x=>{ if(r.meals[x]){ st.mahlzeiten++; if((r.msrc||{})[x]==="rezept")st.ausRezept++; } });
     if(dayComplete(r))st.done++;
   }
   const end=addDays(monday,7);
@@ -638,6 +656,11 @@ function buildReview(monday){
     else punkte.push(`Gewicht ${delta>0?"+":""}${delta} kg — stabil. Passt zur aktuellen Belastung.`);
   } else punkte.push("Noch zu wenig Wiegedaten für einen Trend. Einmal pro Woche, gleicher Tag, gleiche Uhrzeit.");
 
+  if(st.mahlzeiten>0){
+    const q=Math.round(st.ausRezept/st.mahlzeiten*100);
+    punkte.push(q>=50?`${st.ausRezept} von ${st.mahlzeiten} gesunden Mahlzeiten kamen aus den Rezepten (${q} %). Die Bewertungen darunter steuern die Vorschläge zuverlässig.`
+      :`Nur ${st.ausRezept} von ${st.mahlzeiten} gesunden Mahlzeiten kamen aus den Rezepten. Die Vorschläge lernen fast nur aus bewerteten Gerichten — häufiger eins davon kochen schärft sie.`);
+  }
   const top=Object.entries(tagScores()).sort((a,b)=>b[1]-a[1])[0];
   if(top&&top[1]>0){punkte.push(`Deine Bewertungen laufen klar Richtung „${top[0]}“ — die Vorschläge gewichten das ab jetzt stärker.`);if(!fokus)fokus=top[0];}
 
@@ -698,11 +721,19 @@ function startSession(kind){
   clearInterval(T.tick);
   T.tick=setInterval(()=>{
     if(!T.run)return;
+    const cur=T.steps[T.i];
     T.left--;
+    if(cur && cur.side && !cur.rest && T.left===Math.floor(cur.sec/2)){
+      beep(990,.16); setTimeout(()=>beep(990,.16),200);      // Seitenwechsel: Doppelton
+    }
+    if(T.left>0 && T.left<=3){
+      beep(cur && cur.rest ? 520 : 700, .1);                 // letzte drei Sekunden
+    }
     if(T.left<=0){
       T.i++;
       if(T.i>=T.steps.length){finishSession();return;}
-      T.left=T.steps[T.i].sec;beep(T.steps[T.i].rest?440:880);
+      T.left=T.steps[T.i].sec;
+      beep(T.steps[T.i].rest?440:880,.3);
     }
     paintTimer();
   },1000);
@@ -716,8 +747,12 @@ function paintTimer(){
   document.getElementById("ovHint").textContent=s.d;
   document.getElementById("ovBar").style.width=(passed/total*100)+"%";
   document.getElementById("ov").classList.toggle("rest",!!s.rest);
-  const nx=T.steps[T.i+1];
-  document.getElementById("ovNext").textContent=nx?`Als Nächstes · ${nx.n}`:"Letzter Abschnitt";
+  const nx=T.steps[T.i+1], half=Math.floor(s.sec/2);
+  let hint;
+  if(s.side && !s.rest) hint = T.left>half ? `Erste Seite · Wechsel bei ${fmtClock(half)}` : "Zweite Seite";
+  else hint = nx ? `Als Nächstes · ${nx.n}` : "Letzter Abschnitt";
+  document.getElementById("ovNext").textContent=hint;
+  document.getElementById("ovName").textContent = s.n + (s.side&&!s.rest&&T.left<=half ? " ›" : "");
 }
 async function finishSession(){
   clearInterval(T.tick);T.run=false;
@@ -729,14 +764,19 @@ async function finishSession(){
   toast(T.kind==="core"?"Rumpfeinheit abgehakt.":"Dehneinheit abgehakt.");
   render();
 }
-function beep(f){
+let AC=null;
+function beep(f,len){
   try{
     const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
-    const ctx=new C(),o=ctx.createOscillator(),g=ctx.createGain();
-    o.frequency.value=f;o.connect(g);g.connect(ctx.destination);
-    g.gain.setValueAtTime(.18,ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.25);
-    o.start();o.stop(ctx.currentTime+.26);
+    if(!AC)AC=new C();
+    if(AC.state==="suspended")AC.resume();
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type="sine";o.frequency.value=f;o.connect(g);g.connect(AC.destination);
+    const d=len||.25;
+    g.gain.setValueAtTime(.0001,AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(.22,AC.currentTime+.012);
+    g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);
+    o.start();o.stop(AC.currentTime+d+.02);
   }catch(e){}
 }
 
@@ -764,11 +804,19 @@ function renderHeader(){
 }
 
 /* ---------- Bausteine ---------- */
-function mealSlots(r){
-  return `<div class="slots">${MEALSLOTS.map(([id,name,hint])=>
-    `<div class="slot ${r.meals[id]?"on":""}" data-act="meal" data-slot="${id}">
-      <div class="b2">✓</div><b>${name}</b><span class="h">${r.meals[id]?"gesund":hint}</span></div>`).join("")}</div>`;
+function mealSlots(r,ctx){
+  const dk=ctx||dkey(today());
+  return `<div class="slots">${MEALSLOTS.map(([id,name,hint])=>{
+    const on=r.meals[id], src=(r.msrc||{})[id];
+    const lbl=on?(src==="rezept"?"nach Rezept":src==="anders"?"anderes Essen":"Quelle wählen"):hint;
+    return `<div>
+      <div class="slot ${on?"on":""}" data-act="meal" data-slot="${id}" data-d="${dk}">
+        <div class="b2">✓</div><b>${name}</b><span class="h">${lbl}</span></div>
+      ${on?`<div class="srcsel">${MEALSRC.map(([v,t])=>
+        `<button data-act="msrc" data-slot="${id}" data-v="${v}" data-d="${dk}" class="${src===v?"on":""}">${t}</button>`).join("")}</div>`:""}
+    </div>`;}).join("")}</div>`;
 }
+
 function logRow(s,withDate){
   const ic={Running:"▲","Fußball":"●",Radfahren:"◆",Tennis:"■"}[s.sport]||"◇";
   const d=parseKey(s.date);
@@ -858,7 +906,7 @@ function viewHeute(){
     <p class="xs muted" style="margin:5px 0 10px">Ohne Geräte · 5 × 55 Sek Belastung, dazwischen jeweils 5 Sek Pause · Stufe ${S.level} von 3</p>
     ${core.map((e,i)=>`<div class="ex"><div class="n mono">${i+1}</div>
       <div class="b"><b>${e.n}</b><p>${e.d}</p></div>
-      <div class="t mono">0:55<i>+0:05 Pause</i></div></div>`).join("")}
+      <div class="t mono">0:55<i>${e.side?"Wechsel 0:27":"+0:05 Pause"}</i></div></div>`).join("")}
     <button class="btn grad" data-act="start" data-kind="core" style="margin-top:16px">Einheit starten</button>
   </div>
 
@@ -867,7 +915,8 @@ function viewHeute(){
     <h2>Rückseite geschmeidig</h2>
     <p class="xs muted" style="margin:5px 0 10px">Ruhig atmen, nie in den Schmerz. Nach dem Laufen wirkt es am besten.</p>
     ${str.map((e,i)=>`<div class="ex stretch"><div class="n mono">${i+1}</div>
-      <div class="b"><b>${e.n}</b><p>${e.d}</p></div><div class="t mono">1:00</div></div>`).join("")}
+      <div class="b"><b>${e.n}</b><p>${e.d}</p></div>
+      <div class="t mono">1:00${e.side?"<i>Wechsel 0:30</i>":""}</div></div>`).join("")}
     <button class="btn go" data-act="start" data-kind="stretch" style="margin-top:16px">Dehnen starten</button>
   </div>
 
@@ -895,6 +944,54 @@ function viewHeute(){
       <button class="btn" data-act="saveSession" style="margin-top:12px">Einheit speichern</button>
     </div>
     ${sess.length?`<hr class="sep">${sess.map(s=>logRow(s,false)).join("")}`:""}
+  </div>`;
+}
+
+/* ---------- Tages-Editor (rueckwirkend) ---------- */
+let editDate=null, selSportE=null;
+function edKey(){ return editDate || dkey(today()); }
+
+function dayEditor(){
+  const ek=edKey(), ed=parseKey(ek), r=dayRec(ek), wd=isWeekday(ed);
+  const chips=[];
+  for(let i=0;i<10;i++){
+    const d=addDays(today(),-i), k=dkey(d), rr=S.days[k];
+    chips.push(`<button data-act="edDay" data-d="${k}" class="${k===ek?"on":""}">
+      ${DAYS[d.getDay()]}<span class="dd">${d.getDate()}.${d.getMonth()+1}.</span>
+      ${dayComplete(rr)?'<i></i>':''}</button>`);
+  }
+  const sess=S.sessions.filter(x=>x.date===ek);
+  return `
+  <div class="card">
+    <div class="eyebrow"><span>Tag bearbeiten</span><span>${dayComplete(r)?"komplett":wd?"unvollständig":"Wochenende"}</span></div>
+    <div class="daychips">${chips.join("")}</div>
+    <input type="date" id="edDate" value="${ek}" max="${dkey(today())}" style="margin-top:10px">
+    <h2 style="margin-top:14px;font-size:19px">${DAYS[ed.getDay()]}, ${ed.getDate()}.${ed.getMonth()+1}.${ed.getFullYear()}</h2>
+    ${wd?"":'<p class="xs muted" style="margin:4px 0 0">Wochenende — Einträge zählen nicht für die Serie, werden aber gespeichert.</p>'}
+
+    <div class="check ${r.workout?"on":""}" data-act="toggle" data-field="workout" data-d="${ek}" style="margin-top:8px">
+      <div class="box">✓</div><div class="txt"><b>Rumpf & Bauch</b><span>5 Minuten</span></div></div>
+    <div class="check ${r.stretch?"on":""}" data-act="toggle" data-field="stretch" data-d="${ek}">
+      <div class="box">✓</div><div class="txt"><b>Beine dehnen</b><span>5 Minuten</span></div></div>
+
+    <div class="eyebrow" style="margin:14px 0 8px"><span>Mahlzeiten</span><span>${mealCount(r)}/3 gesund</span></div>
+    ${mealSlots(r,ek)}
+
+    <div class="eyebrow" style="margin:16px 0 8px">Einheiten an diesem Tag</div>
+    ${sess.length?sess.map(x=>logRow(x,false)).join(""):'<p class="xs muted" style="margin:0 0 10px">Noch nichts eingetragen.</p>'}
+    <div class="sportsel" style="margin-top:8px">${[["Running","▲"],["Fußball","●"],["Radfahren","◆"],["Tennis","■"]].map(([sp,ic])=>
+      `<button data-act="sportE" data-s="${sp}" class="${selSportE===sp?"on":""}"><span class="ic">${ic}</span>${sp}</button>`).join("")}</div>
+    <div id="sportformE" class="${selSportE?"":"hide"}">
+      <div class="grid2">
+        <div><label class="f">Distanz (km)</label><input class="mono" type="text" inputmode="decimal" id="eKm" placeholder="0.0"></div>
+        <div><label class="f">Dauer (min)</label><input class="mono" type="text" inputmode="numeric" id="eMin" placeholder="0"></div>
+      </div>
+      <label class="f">Anstrengung 1–10 (RPE)</label>
+      <input class="mono" type="text" inputmode="numeric" id="eRpe" placeholder="6">
+      <label class="f">Notiz (optional)</label>
+      <textarea id="eNote" placeholder="Untergrund, Gefühl, Intervalle …"></textarea>
+      <button class="btn" data-act="saveSessionE" style="margin-top:12px">Einheit für diesen Tag speichern</button>
+    </div>
   </div>`;
 }
 
@@ -935,6 +1032,8 @@ function viewWoche(){
     :`<p class="small muted" style="margin:0">Noch keine Auswertung. Die App wertet die Woche automatisch aus, sobald der nächste Montag beginnt — inklusive Anpassung von Übungsstufe und Rezeptgewichtung.</p>
       <button class="btn ghost sm" data-act="forceReview" style="margin-top:12px">Letzte Woche jetzt auswerten</button>`}
   </div>
+
+  ${dayEditor()}
 
   <div class="card">
     <div class="eyebrow">Letzte Einheiten</div>
@@ -1083,14 +1182,46 @@ function render(){
 document.getElementById("ovClose").onclick=()=>{clearInterval(T.tick);T.run=false;document.getElementById("ov").classList.remove("on","rest");};
 document.getElementById("ovToggle").onclick=e=>{T.run=!T.run;e.target.textContent=T.run?"Pause":"Weiter";};
 
+document.addEventListener("change",e=>{
+  if(e.target && e.target.id==="edDate" && e.target.value){
+    editDate=e.target.value; selSportE=null; render();
+  }
+});
+
 document.addEventListener("click",async e=>{
   const nav=e.target.closest("nav button");
   if(nav){TAB=nav.dataset.tab;window.scrollTo(0,0);render();return;}
   const el=e.target.closest("[data-act]");if(!el)return;
-  const a=el.dataset.act,k=dkey(today()),r=dayRec(k);
+  const a=el.dataset.act, k=el.dataset.d||dkey(today()), r=dayRec(k);
 
   if(a==="toggle"){r[el.dataset.field]=!r[el.dataset.field];await save();render();}
-  else if(a==="meal"){r.meals[el.dataset.slot]=!r.meals[el.dataset.slot];await save();render();}
+  else if(a==="meal"){
+    const sl=el.dataset.slot;
+    r.meals[sl]=!r.meals[sl];
+    if(!r.meals[sl])delete r.msrc[sl];
+    await save();render();
+  }
+  else if(a==="msrc"){
+    const sl=el.dataset.slot;
+    r.msrc[sl] = r.msrc[sl]===el.dataset.v ? undefined : el.dataset.v;
+    if(!r.msrc[sl])delete r.msrc[sl];
+    await save();render();
+  }
+  else if(a==="edDay"){editDate=el.dataset.d;selSportE=null;render();}
+  else if(a==="sportE"){
+    selSportE = selSportE===el.dataset.s ? null : el.dataset.s;
+    render();
+  }
+  else if(a==="saveSessionE"){
+    if(!selSportE){toast("Erst eine Sportart wählen.");return;}
+    const km=parseFloat((document.getElementById("eKm").value||"").replace(",","."));
+    const min=parseInt(document.getElementById("eMin").value||"");
+    const rpe=parseInt(document.getElementById("eRpe").value||"");
+    S.sessions.push({id:Date.now()+"",date:edKey(),sport:selSportE,km:isNaN(km)?null:+km.toFixed(1),
+      min:isNaN(min)?null:min,rpe:isNaN(rpe)?null:Math.min(10,Math.max(1,rpe)),
+      note:(document.getElementById("eNote").value||"").trim()});
+    selSportE=null;await save();toast("Einheit nachgetragen.");render();
+  }
   else if(a==="persons"){S.persons=+el.dataset.n;await save();render();}
   else if(a==="start"){startSession(el.dataset.kind);}
   else if(a==="rate"){S.ratings[el.dataset.id]=+el.dataset.n;await save();toast("Bewertung gespeichert — beeinflusst die nächsten Vorschläge.");render();}
@@ -1104,7 +1235,7 @@ document.addEventListener("click",async e=>{
     const km=parseFloat((document.getElementById("fKm").value||"").replace(",","."));
     const min=parseInt(document.getElementById("fMin").value||"");
     const rpe=parseInt(document.getElementById("fRpe").value||"");
-    S.sessions.push({id:Date.now()+"",date:k,sport:selSport,km:isNaN(km)?null:+km.toFixed(1),
+    S.sessions.push({id:Date.now()+"",date:dkey(today()),sport:selSport,km:isNaN(km)?null:+km.toFixed(1),
       min:isNaN(min)?null:min,rpe:isNaN(rpe)?null:Math.min(10,Math.max(1,rpe)),
       note:(document.getElementById("fNote").value||"").trim()});
     selSport=null;await save();toast("Einheit gespeichert.");render();
@@ -1113,8 +1244,9 @@ document.addEventListener("click",async e=>{
   else if(a==="saveWeight"){
     const kg=parseFloat((document.getElementById("wKg").value||"").replace(",","."));
     if(isNaN(kg)||kg<30||kg>250){toast("Bitte einen Wert zwischen 30 und 250 kg eintragen.");return;}
-    S.weights=S.weights.filter(w=>w.date!==k);
-    S.weights.push({date:k,kg:+kg.toFixed(1)});
+    const wk=dkey(today());
+    S.weights=S.weights.filter(w=>w.date!==wk);
+    S.weights.push({date:wk,kg:+kg.toFixed(1)});
     await save();toast("Gewicht eingetragen.");render();
   }
   else if(a==="ai"){await aiReview(+el.dataset.i);}
